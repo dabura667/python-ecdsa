@@ -11,7 +11,8 @@ Many thanks to Coda Hale for his implementation in Go language:
 
 import hmac
 from binascii import hexlify
-from .util import number_to_string, number_to_string_crop
+from .numbertheory import inverse_mod
+from .util import number_to_string, number_to_string_crop, string_to_number
 from .six import b
 
 try:
@@ -59,6 +60,19 @@ def generate_k(generator, secexp, hash_func, data):
         data - hash in binary form of the signing data
     '''
 
+    def check_r_and_s(generator, check_k, secexp, data):
+        '''
+            generator, secexp, and data should be passed as is from generate_k()
+            check_k - the secret for which we wish to test the r and s value for
+        '''
+        hash = string_to_number(data)
+        n = generator.order()
+        k = check_k % n
+        p1 = k * generator
+        r = p1.x()
+        s = ( inverse_mod( k, n ) * ( hash + ( secexp * r ) % n ) ) % n
+        return (r != 0 and s != 0)
+
     qlen = bit_length(generator.order())
     holen = hash_func().digest_size
     rolen = (qlen + 7) / 8
@@ -96,7 +110,7 @@ def generate_k(generator, secexp, hash_func, data):
         # Step H3
         secret = bits2int(t, qlen)
 
-        if secret >= 1 and secret < generator.order():
+        if secret >= 1 and secret < generator.order() and check_r_and_s(generator, secret, secexp, data):
             return secret
 
         k = hmac.new(k, v+b('\x00'), hash_func).digest()
