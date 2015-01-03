@@ -232,8 +232,7 @@ class SigningKey:
         See RFC 6979 for more details.
         """
         secexp = self.privkey.secret_multiplier
-        k = rfc6979.generate_k(
-            self.curve.generator.order(), secexp, hashfunc, digest)
+        k = rfc6979.generate_k(self.curve.generator, secexp, hashfunc, digest)
 
         return self.sign_digest(digest, sigencode=sigencode, k=k)
 
